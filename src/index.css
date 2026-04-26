@@ -1,0 +1,25 @@
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: #f7f5ef;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  font-family: Aptos, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+::selection {
+  color: #fffdf8;
+  background: #146b5f;
+}
