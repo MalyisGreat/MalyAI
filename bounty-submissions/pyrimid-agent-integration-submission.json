@@ -1,0 +1,19 @@
+{
+  "job": 20,
+  "title": "Pyrimid SDK resolver integration for MalyisGreat Codex agent",
+  "summary": "Adds a reproducible agent integration using @pyrimid/sdk/resolver@0.2.6. The agent fetches the live Pyrimid seed catalog, recommends commissionable products for a buyer need, previews affiliate/vendor split, and verifies the selected endpoint returns Base USDC x402 payment metadata.",
+  "public_artifact_url": "https://github.com/MalyisGreat/MalyAI/tree/main/bounty-submissions/pyrimid-agent-integration",
+  "verification": {
+    "commands": [
+      "npm install",
+      "node --check agent.mjs",
+      "node --check verify.mjs",
+      "npm run demo -- \"paid MCP tool for agent commerce\"",
+      "npm run verify"
+    ],
+    "result": "Verifier returned ok:true with sdk @pyrimid/sdk/resolver@0.2.6, 3 recommendations, selected product mya-agent-enrichment, Base USDC payment metadata, router payTo, resource, and affiliateBps."
+  },
+  "payout_wallet_base_usdc": "0x85FDDaCFB64b6486094B45bA9a235e674a590497",
+  "spends_funds": false,
+  "private_key_required": false
+}

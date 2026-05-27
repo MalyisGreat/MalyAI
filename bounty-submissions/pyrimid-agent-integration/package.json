@@ -1,0 +1,13 @@
+{
+  "name": "pyrimid-agent-integration",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "demo": "node agent.mjs",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "@pyrimid/sdk": "0.2.6"
+  }
+}

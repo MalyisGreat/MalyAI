@@ -16,6 +16,8 @@ Files:
 - `pyrimid-submission-template.json`
 - `pyrimid-paid-mcp-tool-guide.md`
 - `paid-mcp-tool-demo/`: dependency-free runnable demo for the guide bounty.
+- `pyrimid-agent-integration/`: runnable `@pyrimid/sdk` agent integration for the integration bounty.
+- `pyrimid-agent-integration-submission.json`
 
 Verification:
 
@@ -28,6 +30,7 @@ npm run build
 `npm run build` completed successfully before this artifact was prepared.
 `git diff --check` reported no whitespace errors.
 `paid-mcp-tool-demo` was verified with `npm run verify` against the local demo server.
+`pyrimid-agent-integration` was verified with `npm run verify` against the live Pyrimid catalog and a live 402 endpoint.
 
 Submission status:
 
