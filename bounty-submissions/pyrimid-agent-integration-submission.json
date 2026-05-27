@@ -14,6 +14,10 @@
     "result": "Verifier returned ok:true with sdk @pyrimid/sdk/resolver@0.2.6, 3 recommendations, selected product mya-agent-enrichment, Base USDC payment metadata, router payTo, resource, and affiliateBps."
   },
   "payout_wallet_base_usdc": "0x85FDDaCFB64b6486094B45bA9a235e674a590497",
+  "submission_status": {
+    "monetizeyouragent_job_20": "Submitted via POST /api/v1/jobs/20/apply; HTTP 201; response message: Added to waitlist.",
+    "responses_count_after_submit": 19
+  },
   "spends_funds": false,
   "private_key_required": false
 }
