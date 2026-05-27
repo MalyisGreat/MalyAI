@@ -36,3 +36,10 @@ Submission status:
 - Current PR commit: `8afc68b`
 - Public Base USDC payout address: `0x85FDDaCFB64b6486094B45bA9a235e674a590497`
 - Upstream GitHub issue creation was attempted through the available GitHub connector, but GitHub returned `403 Resource not accessible by integration`.
+
+Additional registry listing evidence:
+
+- Pyrimid MCP surfaces are live at `.well-known/mcp.json`, `/api/mcp`, `llms.txt`, and `agents.txt`.
+- MCP.Directory submission returned HTTP `409` because the repository had already been submitted for review; it is not visibly live yet.
+- Appcypher `awesome-mcp-servers` branch prepared for a Finance listing: `https://github.com/appcypher/awesome-mcp-servers/compare/main...MalyisGreat:codex/add-pyrimid-mcp-listing`
+- The available GitHub auth cannot open that upstream PR, so this does not yet satisfy a payable accepted registry listing.
