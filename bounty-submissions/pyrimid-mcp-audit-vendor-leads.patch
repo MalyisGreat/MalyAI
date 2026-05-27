@@ -1,4 +1,4 @@
-﻿diff --git a/app/api/v1/paid/[product]/route.ts b/app/api/v1/paid/[product]/route.ts
+diff --git a/app/api/v1/paid/[product]/route.ts b/app/api/v1/paid/[product]/route.ts
 index 65076eb..1a2c067 100644
 --- a/app/api/v1/paid/[product]/route.ts
 +++ b/app/api/v1/paid/[product]/route.ts
@@ -578,3 +578,102 @@ index 65076eb..1a2c067 100644
      routed_by: 'pyrimid',
      links: {
        docs: 'https://pyrimid.ai/quickstart',
+diff --git a/lib/seed-products.ts b/lib/seed-products.ts
+index c47b524..8414b38 100644
+--- a/lib/seed-products.ts
++++ b/lib/seed-products.ts
+@@ -123,7 +123,43 @@ export const SEED_PRODUCTS: Omit<SeedProduct, 'indexed_at'>[] = [
+     affiliate_bps: 4000,
+     endpoint: `${SEED_PRODUCT_BASE}/vendor-lead-discovery?segment=mcp`,
+     method: 'GET',
+-    output_schema: { type: 'object', properties: { leads: { type: 'array' }, routed_by: { const: 'pyrimid' } } },
++    output_schema: {
++      type: 'object',
++      properties: {
++        segment: { type: 'string' },
++        lead_count: { type: 'number' },
++        discovery: {
++          type: 'object',
++          properties: {
++            source: { const: 'github_repository_search' },
++            searched_queries: { type: 'array', items: { type: 'string' } },
++            errors: { type: 'array' },
++            fallback_used: { type: 'boolean' },
++            generated_at: { type: 'string' },
++          },
++        },
++        scoring_model: { type: 'object' },
++        leads: {
++          type: 'array',
++          items: {
++            type: 'object',
++            properties: {
++              target: { type: 'string' },
++              fit_score: { type: 'number' },
++              reason: { type: 'string' },
++              suggested_paid_tool: { type: 'string' },
++              price_usdc: { type: 'string' },
++              affiliate_bps: { type: 'number' },
++              outreach_hook: { type: 'string' },
++              catalog_metadata_hint: { type: 'object' },
++            },
++          },
++        },
++        strategy_templates: { type: 'array' },
++        next_actions: { type: 'array' },
++        routed_by: { const: 'pyrimid' },
++      },
++    },
+     monthly_volume: 0,
+     monthly_buyers: 0,
+     network: 'base',
+@@ -144,7 +180,48 @@ export const SEED_PRODUCTS: Omit<SeedProduct, 'indexed_at'>[] = [
+     affiliate_bps: 4000,
+     endpoint: `${SEED_PRODUCT_BASE}/mcp-server-audit?url=https://example.com/mcp`,
+     method: 'GET',
+-    output_schema: { type: 'object', properties: { audit: { type: 'object' }, routed_by: { const: 'pyrimid' } } },
++    output_schema: {
++      type: 'object',
++      properties: {
++        audit: {
++          type: 'object',
++          properties: {
++            url: { type: 'string' },
++            normalized_url: { type: 'string' },
++            server_kind: { type: 'string' },
++            inspection: {
++              type: 'object',
++              properties: {
++                inspected_as: { type: 'string' },
++                detected_features: { type: 'array', items: { type: 'string' } },
++                missing_features: { type: 'array', items: { type: 'string' } },
++                evidence_urls: { type: 'array', items: { type: 'string' } },
++                errors: { type: 'array', items: { type: 'string' } },
++              },
++            },
++            recommended_paid_tools: {
++              type: 'array',
++              items: {
++                type: 'object',
++                properties: {
++                  name: { type: 'string' },
++                  route: { type: 'string' },
++                  price_usdc: { type: 'string' },
++                  value: { type: 'string' },
++                  output_schema: { type: 'object' },
++                },
++              },
++            },
++            pricing: { type: 'object' },
++            route_shape: { type: 'object' },
++            catalog_metadata: { type: 'object' },
++            risk_notes: { type: 'array', items: { type: 'string' } },
++            integration_steps: { type: 'array', items: { type: 'string' } },
++          },
++        },
++        routed_by: { const: 'pyrimid' },
++      },
++    },
+     monthly_volume: 0,
+     monthly_buyers: 0,
+     network: 'base',
