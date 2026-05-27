@@ -1,5 +1,5 @@
-diff --git a/app/api/v1/paid/[product]/route.ts b/app/api/v1/paid/[product]/route.ts
-index 65076eb..b2178c5 100644
+﻿diff --git a/app/api/v1/paid/[product]/route.ts b/app/api/v1/paid/[product]/route.ts
+index 65076eb..1a2c067 100644
 --- a/app/api/v1/paid/[product]/route.ts
 +++ b/app/api/v1/paid/[product]/route.ts
 @@ -24,7 +24,29 @@ function paymentRequired(req: NextRequest, product: NonNullable<ReturnType<typeo
@@ -240,7 +240,7 @@ index 65076eb..b2178c5 100644
            integration_steps: [
              'Add 402 response with x402 accepts[] metadata',
              'Register vendor/product in Pyrimid catalog',
-@@ -95,6 +292,324 @@ function payload(productId: string, req: NextRequest, proof: string) {
+@@ -95,6 +292,328 @@ function payload(productId: string, req: NextRequest, proof: string) {
    }
  }
  
@@ -253,6 +253,10 @@ index 65076eb..b2178c5 100644
 +    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
 +  }
 +  return headers;
++}
++
++function fetchWithTimeout(url: string, init: RequestInit = {}, timeoutMs = 3000) {
++  return fetch(url, { ...init, signal: init.signal || AbortSignal.timeout(timeoutMs) });
 +}
 +
 +async function discoverVendorLeads(leadProfiles: LeadProfile[], query: Record<string, string>) {
@@ -269,7 +273,7 @@ index 65076eb..b2178c5 100644
 +  for (const { search, profile } of queryPlan) {
 +    try {
 +      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(`${search} archived:false`)}&sort=updated&order=desc&per_page=5`;
-+      const response = await fetch(url, { headers: githubHeaders(), cache: 'no-store' });
++      const response = await fetchWithTimeout(url, { headers: githubHeaders(), cache: 'no-store' });
 +      if (!response.ok) {
 +        errors.push({ query: search, status: response.status, message: `GitHub search failed with HTTP ${response.status}` });
 +        continue;
@@ -381,7 +385,7 @@ index 65076eb..b2178c5 100644
 +
 +  for (const probe of probes) {
 +    try {
-+      const response = await fetch(probe.url, { method: 'GET', cache: 'no-store' });
++      const response = await fetchWithTimeout(probe.url, { method: 'GET', cache: 'no-store' }, 2000);
 +      if (response.ok) {
 +        detected.add(probe.feature);
 +        missing.delete(probe.feature);
@@ -421,7 +425,7 @@ index 65076eb..b2178c5 100644
 +  let metadata: Record<string, unknown> = {};
 +
 +  try {
-+    const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: githubHeaders(), cache: 'no-store' });
++    const repoResponse = await fetchWithTimeout(`https://api.github.com/repos/${owner}/${repo}`, { headers: githubHeaders(), cache: 'no-store' });
 +    if (repoResponse.ok) {
 +      const data = await repoResponse.json() as GitHubRepositoryItem;
 +      metadata = {
@@ -444,7 +448,7 @@ index 65076eb..b2178c5 100644
 +
 +  const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
 +  try {
-+    const contentsResponse = await fetch(contentsUrl, { headers: githubHeaders(), cache: 'no-store' });
++    const contentsResponse = await fetchWithTimeout(contentsUrl, { headers: githubHeaders(), cache: 'no-store' });
 +    if (contentsResponse.ok) {
 +      const contents = await contentsResponse.json() as Array<{ name?: string; html_url?: string }>;
 +      for (const item of contents) {
@@ -565,7 +569,7 @@ index 65076eb..b2178c5 100644
  export async function GET(req: NextRequest, context: { params: Promise<{ product: string }> }) {
    const { product: productId } = await context.params;
    const product = getSeedProduct(productId);
-@@ -128,7 +643,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ product
+@@ -128,7 +647,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ product
      payment_tx: verification.txHash,
      payment_amount: verification.amount?.toString(),
      buyer: verification.buyer,
