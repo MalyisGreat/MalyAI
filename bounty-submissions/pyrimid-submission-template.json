@@ -1,0 +1,27 @@
+{
+  "jobs": [25, 26],
+  "title": "Improve vendor lead discovery and MCP server audit seed outputs",
+  "summary": "Expands Pyrimid seed paid endpoints from generic placeholder rows into actionable JSON outputs for vendor lead scoring and MCP monetization audits.",
+  "patch_file": "C:\\Users\\joshj\\make-20-problem-solving\\pyrimid-mcp-audit-vendor-leads.patch",
+  "repo": "https://github.com/pyrimid-ai/pyrimid",
+  "local_clone": "C:\\Users\\joshj\\bounty-work\\pyrimid",
+  "changed_file": "app/api/v1/paid/[product]/route.ts",
+  "verification": {
+    "commands": [
+      "npm install",
+      "npm run build"
+    ],
+    "result": "Build completed successfully."
+  },
+  "payout": {
+    "required_by_platform": "Public Base USDC wallet or platform account payout setup.",
+    "private_key_required": false,
+    "do_not_share": [
+      "private keys",
+      "seed phrases",
+      "wallet passwords",
+      "Stripe API keys",
+      "GitHub credentials"
+    ]
+  }
+}
