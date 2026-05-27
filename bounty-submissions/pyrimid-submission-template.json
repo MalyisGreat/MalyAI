@@ -17,6 +17,7 @@
     "monetizeyouragent_job_25": "Application submitted via POST /api/v1/jobs/25/apply; HTTP 201.",
     "monetizeyouragent_job_26": "Application submitted via POST /api/v1/jobs/26/apply; HTTP 201.",
     "public_artifact_url": "https://github.com/MalyisGreat/MalyAI/tree/main/bounty-submissions",
+    "upstream_pull_request": "https://github.com/pyrimid-ai/pyrimid/pull/31",
     "upstream_github_issue": "Attempted through connector; failed with GitHub API 403 Resource not accessible by integration."
   },
   "payout": {
