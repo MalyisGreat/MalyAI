@@ -15,6 +15,7 @@ Files:
 - `pyrimid-mcp-audit-vendor-leads.patch`
 - `pyrimid-submission-template.json`
 - `pyrimid-paid-mcp-tool-guide.md`
+- `paid-mcp-tool-demo/`: dependency-free runnable demo for the guide bounty.
 
 Verification:
 
@@ -26,6 +27,7 @@ npm run build
 
 `npm run build` completed successfully before this artifact was prepared.
 `git diff --check` reported no whitespace errors.
+`paid-mcp-tool-demo` was verified with `npm run verify` against the local demo server.
 
 Submission status:
 

@@ -1,0 +1,24 @@
+{
+  "vendor_id": "pyrimid-growth",
+  "vendor_name": "Pyrimid Growth",
+  "product_id": "mcp-server-audit-demo",
+  "description": "Demo paid MCP monetization audit endpoint with x402-style 402 metadata.",
+  "category": "devtools",
+  "tags": [
+    "mcp",
+    "audit",
+    "monetization",
+    "paid-tools",
+    "x402",
+    "developer-tools"
+  ],
+  "price_usdc": 100000,
+  "price_display": "$0.10",
+  "affiliate_bps": 4000,
+  "endpoint": "http://127.0.0.1:4173/api/v1/paid/mcp-server-audit?url=https://example.com/mcp",
+  "method": "GET",
+  "network": "base",
+  "asset": "USDC",
+  "source": "pyrimid-guide-demo",
+  "sdk_integrated": true
+}

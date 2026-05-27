@@ -25,6 +25,36 @@ GET https://pyrimid.ai/api/v1/paid/mcp-server-audit?url=https://example.com/mcp
 
 Price: `$0.10` USDC on Base.
 
+Runnable demo:
+
+```text
+https://github.com/MalyisGreat/MalyAI/tree/main/bounty-submissions/paid-mcp-tool-demo
+```
+
+The demo is a dependency-free Node endpoint that returns the same `402` shape
+shown below, then returns paid JSON when retried with `X-PAYMENT` or
+`X-PAYMENT-TX`. It is intentionally a local reproducibility harness, not a
+payment verifier.
+
+Run it:
+
+```bash
+cd bounty-submissions/paid-mcp-tool-demo
+npm start
+```
+
+Verify it:
+
+```bash
+npm run verify
+```
+
+Expected verifier output:
+
+```text
+verified 402 metadata and paid retry JSON
+```
+
 ## Expected 402 Response
 
 Before payment, the endpoint should return a machine-readable `402` response with x402 metadata.
