@@ -1,14 +1,45 @@
 ﻿diff --git a/app/api/v1/paid/[product]/route.ts b/app/api/v1/paid/[product]/route.ts
-index 65076eb..c36ca46 100644
+index 65076eb..44aaf1e 100644
 --- a/app/api/v1/paid/[product]/route.ts
 +++ b/app/api/v1/paid/[product]/route.ts
-@@ -52,23 +52,181 @@ function payload(productId: string, req: NextRequest, proof: string) {
+@@ -24,7 +24,29 @@ function paymentRequired(req: NextRequest, product: NonNullable<ReturnType<typeo
+   );
+ }
+ 
+-function payload(productId: string, req: NextRequest, proof: string) {
++type LeadProfile = {
++  target: string;
++  fit_score: number;
++  reason: string;
++  discovery_queries: string[];
++  suggested_paid_tool: string;
++  price_usdc: string;
++  affiliate_bps: number;
++  outreach_hook: string;
++};
++
++type GitHubRepositoryItem = {
++  full_name?: string;
++  html_url?: string;
++  description?: string | null;
++  stargazers_count?: number;
++  language?: string | null;
++  topics?: string[];
++  updated_at?: string;
++  open_issues_count?: number;
++};
++
++async function payload(productId: string, req: NextRequest, proof: string) {
+   const query = Object.fromEntries(req.nextUrl.searchParams.entries());
+ 
+   switch (productId) {
+@@ -52,23 +74,198 @@ function payload(productId: string, req: NextRequest, proof: string) {
        };
      }
      case 'vendor-lead-discovery': {
 -      const segment = query.segment || 'mcp';
 +      const segment = String(query.segment || 'mcp').toLowerCase();
-+      const leadSets: Record<string, Array<Record<string, unknown>>> = {
++      const leadSets: Record<string, LeadProfile[]> = {
 +        mcp: [
 +          {
 +            target: 'Hosted MCP servers with metered data tools',
@@ -86,7 +117,14 @@ index 65076eb..c36ca46 100644
 +          },
 +        ],
 +      };
-+      const leads = leadSets[segment] || leadSets.mcp;
++      const leadProfiles = leadSets[segment] || leadSets.mcp;
++      const discovery = await discoverVendorLeads(leadProfiles, query);
++      const leads = discovery.leads.length > 0 ? discovery.leads : leadProfiles.map((lead) => ({
++        ...lead,
++        source: 'segment_profile',
++        evidence: ['static segment profile'],
++        catalog_metadata_hint: catalogMetadataForLead(lead),
++      }));
        return {
          segment,
 -        leads: [
@@ -95,20 +133,28 @@ index 65076eb..c36ca46 100644
 -          { segment: 'api-tools', target: 'AI API services with per-call cost', pitch: 'Turn API calls into agent-purchasable products.' },
 -        ],
 +        lead_count: leads.length,
++        discovery: {
++          source: 'github_repository_search',
++          searched_queries: discovery.searched_queries,
++          errors: discovery.errors,
++          fallback_used: discovery.leads.length === 0,
++          generated_at: new Date().toISOString(),
++        },
 +        scoring_model: {
-+          high_fit: 'Existing tool/API surface + per-call value + machine-readable output + low account friction.',
++          high_fit: 'Existing GitHub/API/MCP surface + per-call value + machine-readable output + low account friction.',
 +          reject_if: ['requires private user data', 'no API or tool endpoint', 'unclear marginal value', 'no public pricing signal'],
 +        },
 +        leads,
-+        next_actions: leads.map((lead) => ({
-+          target: lead.target,
-+          action: `Run discovery query: ${(lead.discovery_queries as string[])[0]}`,
-+          submit_to_catalog: {
-+            vendor_id_hint: String(lead.target).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''),
-+            product_id_hint: lead.suggested_paid_tool,
-+            affiliate_bps: lead.affiliate_bps,
-+          },
-+        })),
++        strategy_templates: leadProfiles,
++        next_actions: leads.map((lead) => {
++          const leadUrl = 'url' in lead ? lead.url : '';
++          const discoveryQuery = 'discovery_query' in lead ? lead.discovery_query : lead.discovery_queries[0];
++          return {
++            target: lead.target,
++            action: leadUrl ? `Review ${leadUrl} and contact the maintainer with the outreach hook.` : `Run discovery query: ${discoveryQuery}`,
++            submit_to_catalog: lead.catalog_metadata_hint,
++          };
++        }),
        };
      }
      case 'mcp-server-audit': {
@@ -116,6 +162,7 @@ index 65076eb..c36ca46 100644
 +      const normalizedUrl = normalizeUrl(url);
 +      const host = safeHost(normalizedUrl);
 +      const serverKind = inferMcpServerKind(normalizedUrl);
++      const targetInspection = await inspectMcpTarget(normalizedUrl);
        return {
          audit: {
            url,
@@ -123,6 +170,7 @@ index 65076eb..c36ca46 100644
 -          pricing: '$0.01-$0.25 per call depending on compute/data cost',
 +          normalized_url: normalizedUrl,
 +          server_kind: serverKind,
++          inspection: targetInspection,
 +          recommended_paid_tools: [
 +            {
 +              name: 'premium_search',
@@ -181,7 +229,7 @@ index 65076eb..c36ca46 100644
 +            vendor_id_hint: host.replace(/[^a-z0-9]+/gi, '-').toLowerCase(),
 +            product_id_hint: `${serverKind}-paid-tool`,
 +            categories: ['mcp-tools', 'agent-commerce', 'developer-tools'],
-+            tags: ['mcp', 'x402', 'base-usdc', serverKind],
++            tags: ['mcp', 'x402', 'base-usdc', serverKind, ...targetInspection.detected_features.slice(0, 4)],
 +            affiliate_bps_recommendation: 1500,
 +          },
 +          risk_notes: [
@@ -192,10 +240,240 @@ index 65076eb..c36ca46 100644
            integration_steps: [
              'Add 402 response with x402 accepts[] metadata',
              'Register vendor/product in Pyrimid catalog',
-@@ -95,6 +253,33 @@ function payload(productId: string, req: NextRequest, proof: string) {
+@@ -95,6 +292,263 @@ function payload(productId: string, req: NextRequest, proof: string) {
    }
  }
  
++function githubHeaders() {
++  const headers: Record<string, string> = {
++    Accept: 'application/vnd.github+json',
++    'User-Agent': 'pyrimid-seed-paid-endpoint',
++  };
++  if (process.env.GITHUB_TOKEN) {
++    headers.Authorization = `Bearer ${process.env.GITHUB_TOKEN}`;
++  }
++  return headers;
++}
++
++async function discoverVendorLeads(leadProfiles: LeadProfile[], query: Record<string, string>) {
++  const requestedLimit = Number.parseInt(query.limit || '6', 10);
++  const limit = Number.isFinite(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 10) : 6;
++  const customQuery = query.q?.trim();
++  const queryPlan = customQuery
++    ? [{ search: customQuery, profile: leadProfiles[0] }]
++    : leadProfiles.flatMap((profile) => profile.discovery_queries.slice(0, 2).map((search) => ({ search, profile }))).slice(0, 5);
++
++  const leads = new Map<string, ReturnType<typeof candidateFromRepository>>();
++  const errors: Array<{ query: string; status?: number; message: string }> = [];
++
++  for (const { search, profile } of queryPlan) {
++    try {
++      const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(`${search} archived:false`)}&sort=updated&order=desc&per_page=5`;
++      const response = await fetch(url, { headers: githubHeaders(), cache: 'no-store' });
++      if (!response.ok) {
++        errors.push({ query: search, status: response.status, message: `GitHub search failed with HTTP ${response.status}` });
++        continue;
++      }
++      const data = await response.json() as { items?: GitHubRepositoryItem[] };
++      for (const item of data.items || []) {
++        const candidate = candidateFromRepository(item, profile, search);
++        if (!candidate.repository) continue;
++        const existing = leads.get(candidate.repository);
++        if (!existing || candidate.fit_score > existing.fit_score) {
++          leads.set(candidate.repository, candidate);
++        }
++      }
++    } catch (err) {
++      errors.push({ query: search, message: err instanceof Error ? err.message : 'Unknown GitHub search error' });
++    }
++  }
++
++  return {
++    searched_queries: queryPlan.map((item) => item.search),
++    errors,
++    leads: Array.from(leads.values()).sort((a, b) => b.fit_score - a.fit_score).slice(0, limit),
++  };
++}
++
++function candidateFromRepository(item: GitHubRepositoryItem, profile: LeadProfile, discoveryQuery: string) {
++  const repository = item.full_name || '';
++  const description = item.description || '';
++  const topics = item.topics || [];
++  const evidenceText = `${repository} ${description} ${topics.join(' ')}`.toLowerCase();
++  const evidence = [
++    repository ? `repository:${repository}` : '',
++    item.stargazers_count !== undefined ? `stars:${item.stargazers_count}` : '',
++    item.language ? `language:${item.language}` : '',
++    topics.length ? `topics:${topics.join(',')}` : '',
++  ].filter(Boolean);
++
++  return {
++    source: 'github_search',
++    target: repository,
++    repository,
++    url: item.html_url || '',
++    description,
++    stars: item.stargazers_count || 0,
++    language: item.language || 'unknown',
++    topics,
++    updated_at: item.updated_at,
++    fit_score: scoreRepositoryLead(profile.fit_score, evidenceText, item.stargazers_count || 0),
++    reason: profile.reason,
++    discovery_query: discoveryQuery,
++    suggested_paid_tool: profile.suggested_paid_tool,
++    price_usdc: profile.price_usdc,
++    affiliate_bps: profile.affiliate_bps,
++    outreach_hook: profile.outreach_hook,
++    catalog_metadata_hint: catalogMetadataForLead(profile, repository || description),
++    evidence,
++  };
++}
++
++function scoreRepositoryLead(baseScore: number, evidenceText: string, stars: number) {
++  let score = baseScore;
++  if (evidenceText.includes('mcp')) score += 5;
++  if (evidenceText.includes('x402') || evidenceText.includes('payment')) score += 4;
++  if (evidenceText.includes('api') || evidenceText.includes('tool')) score += 3;
++  if (evidenceText.includes('pricing') || evidenceText.includes('paid')) score += 3;
++  if (stars > 500) score += 4;
++  else if (stars > 100) score += 2;
++  else if (stars < 5) score -= 6;
++  return Math.min(Math.max(score, 40), 98);
++}
++
++function catalogMetadataForLead(lead: LeadProfile, seed?: string) {
++  const vendorSeed = seed || lead.target;
++  return {
++    vendor_id_hint: vendorSeed.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60),
++    product_id_hint: lead.suggested_paid_tool,
++    affiliate_bps: lead.affiliate_bps,
++    price_usdc: lead.price_usdc,
++  };
++}
++
++async function inspectMcpTarget(normalizedUrl: string) {
++  const githubRepo = parseGitHubRepo(normalizedUrl);
++  if (githubRepo) {
++    return inspectGitHubRepo(githubRepo.owner, githubRepo.repo);
++  }
++
++  const detected = new Set<string>();
++  const missing = new Set(['mcp_manifest', 'llms_txt', 'agents_txt', 'x402_payment_metadata']);
++  const evidenceUrls: string[] = [];
++  const errors: string[] = [];
++  const base = new URL(normalizedUrl);
++  const probes = [
++    { feature: 'mcp_manifest', url: new URL('/.well-known/mcp.json', base).toString() },
++    { feature: 'llms_txt', url: new URL('/llms.txt', base).toString() },
++    { feature: 'agents_txt', url: new URL('/agents.txt', base).toString() },
++  ];
++
++  for (const probe of probes) {
++    try {
++      const response = await fetch(probe.url, { method: 'GET', cache: 'no-store' });
++      if (response.ok) {
++        detected.add(probe.feature);
++        missing.delete(probe.feature);
++        evidenceUrls.push(probe.url);
++      }
++    } catch (err) {
++      errors.push(`${probe.feature}: ${err instanceof Error ? err.message : 'probe failed'}`);
++    }
++  }
++
++  return {
++    inspected_as: 'url',
++    detected_features: Array.from(detected),
++    missing_features: Array.from(missing),
++    evidence_urls: evidenceUrls,
++    errors,
++  };
++}
++
++function parseGitHubRepo(input: string) {
++  try {
++    const url = new URL(input);
++    if (url.hostname !== 'github.com') return null;
++    const [owner, repo] = url.pathname.split('/').filter(Boolean);
++    if (!owner || !repo) return null;
++    return { owner, repo: repo.replace(/\.git$/, '') };
++  } catch {
++    return null;
++  }
++}
++
++async function inspectGitHubRepo(owner: string, repo: string) {
++  const detected = new Set<string>();
++  const missing = new Set(['mcp_manifest', 'llms_txt', 'agents_txt', 'x402_payment_metadata']);
++  const evidenceUrls: string[] = [];
++  const errors: string[] = [];
++  let metadata: Record<string, unknown> = {};
++
++  try {
++    const repoResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}`, { headers: githubHeaders(), cache: 'no-store' });
++    if (repoResponse.ok) {
++      const data = await repoResponse.json() as GitHubRepositoryItem;
++      metadata = {
++        repository: data.full_name,
++        stars: data.stargazers_count,
++        language: data.language,
++        topics: data.topics || [],
++        updated_at: data.updated_at,
++      };
++      const repoText = `${data.full_name || ''} ${data.description || ''} ${(data.topics || []).join(' ')}`.toLowerCase();
++      if (repoText.includes('mcp')) detected.add('mcp_signal');
++      if (repoText.includes('x402') || repoText.includes('payment')) {
++        detected.add('x402_payment_metadata');
++        missing.delete('x402_payment_metadata');
++      }
++    }
++  } catch (err) {
++    errors.push(`repo_metadata: ${err instanceof Error ? err.message : 'metadata fetch failed'}`);
++  }
++
++  const contentsUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
++  try {
++    const contentsResponse = await fetch(contentsUrl, { headers: githubHeaders(), cache: 'no-store' });
++    if (contentsResponse.ok) {
++      const contents = await contentsResponse.json() as Array<{ name?: string; html_url?: string }>;
++      for (const item of contents) {
++        const name = (item.name || '').toLowerCase();
++        if (name === 'llms.txt') {
++          detected.add('llms_txt');
++          missing.delete('llms_txt');
++          if (item.html_url) evidenceUrls.push(item.html_url);
++        }
++        if (name === 'agents.txt') {
++          detected.add('agents_txt');
++          missing.delete('agents_txt');
++          if (item.html_url) evidenceUrls.push(item.html_url);
++        }
++        if (name.includes('mcp')) {
++          detected.add('mcp_manifest');
++          missing.delete('mcp_manifest');
++          if (item.html_url) evidenceUrls.push(item.html_url);
++        }
++        if (name.includes('402') || name.includes('payment')) {
++          detected.add('x402_payment_metadata');
++          missing.delete('x402_payment_metadata');
++          if (item.html_url) evidenceUrls.push(item.html_url);
++        }
++      }
++    }
++  } catch (err) {
++    errors.push(`repo_contents: ${err instanceof Error ? err.message : 'contents fetch failed'}`);
++  }
++
++  return {
++    inspected_as: 'github_repository',
++    metadata,
++    detected_features: Array.from(detected),
++    missing_features: Array.from(missing),
++    evidence_urls: evidenceUrls,
++    errors,
++  };
++}
++
 +function normalizeUrl(input: string) {
 +  try {
 +    const url = new URL(input);
@@ -226,3 +504,12 @@ index 65076eb..c36ca46 100644
  export async function GET(req: NextRequest, context: { params: Promise<{ product: string }> }) {
    const { product: productId } = await context.params;
    const product = getSeedProduct(productId);
+@@ -128,7 +582,7 @@ export async function GET(req: NextRequest, context: { params: Promise<{ product
+     payment_tx: verification.txHash,
+     payment_amount: verification.amount?.toString(),
+     buyer: verification.buyer,
+-    ...payload(product.product_id, req, proof),
++    ...(await payload(product.product_id, req, proof)),
+     routed_by: 'pyrimid',
+     links: {
+       docs: 'https://pyrimid.ai/quickstart',

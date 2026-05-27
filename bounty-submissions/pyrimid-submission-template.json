@@ -1,7 +1,7 @@
 {
   "jobs": [25, 26],
   "title": "Improve vendor lead discovery and MCP server audit seed outputs",
-  "summary": "Expands Pyrimid seed paid endpoints from generic placeholder rows into actionable JSON outputs for vendor lead scoring and MCP monetization audits.",
+  "summary": "Expands Pyrimid seed paid endpoints from generic placeholder rows into actionable JSON outputs with live GitHub vendor discovery, scoring, and MCP URL/repo monetization audits.",
   "patch_file": "C:\\Users\\joshj\\make-20-problem-solving\\pyrimid-mcp-audit-vendor-leads.patch",
   "repo": "https://github.com/pyrimid-ai/pyrimid",
   "local_clone": "C:\\Users\\joshj\\bounty-work\\pyrimid",
@@ -9,9 +9,10 @@
   "verification": {
     "commands": [
       "npm install",
-      "npm run build"
+      "npm run build",
+      "git diff --check"
     ],
-    "result": "Build completed successfully."
+    "result": "Build completed successfully and git diff --check reported no whitespace errors."
   },
   "submission_status": {
     "monetizeyouragent_job_25": "Application submitted via POST /api/v1/jobs/25/apply; HTTP 201.",
